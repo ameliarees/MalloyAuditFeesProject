@@ -1,0 +1,53 @@
+source: num is duckdb.table('num202*.parquet') extend { 
+    primary_key: adsh 
+} 
+ 
+run: num -> { 
+    select: adsh, ddate, tag, value 
+    where: tag = "AssetsCurrent" 
+    limit: 25 
+} 
+
+source: sub is duckdb.table('sub202*.parquet') extend { 
+    primary_key: adsh 
+} 
+
+source: txt is duckdb.table('txt202*.parquet') extend { 
+    primary_key: adsh 
+} 
+
+source: auditfees is duckdb.table('audit_fees1.parquet') extend { 
+    primary_key: adsh 
+} 
+
+source: audit is txt extend{ 
+    join_one: num1 is num with adsh 
+    join_one: sub1 is sub with adsh 
+    join_one: audit1 is auditfees with adsh 
+} 
+run: audit -> { 
+    select: * 
+    limit: 25 
+} 
+
+run: audit -> { 
+    select: adsh, ddate, sub1.period, sub1.sic, sub1.cik, audit1.audit_fees, num1.tag, num1.value, sub1.form 
+    where:sub1.form = '10-K'  
+    and audit1.Ticker = 'TGT' 
+    and num1.tag = 'AssetsCurrent' 
+    limit: 25 
+} 
+
+run: audit -> { 
+    group_by: adsh, num1.ddate, sub1.sic, sub1.cik, audit1.audit_fees, num1.tag, num1.value, sub1.form 
+    having: sub1.form = '10-K'  
+    and audit1.Ticker = 'TGT' 
+    and num1.tag = 'AssetsCurrent' 
+} 
+
+run: audit -> { 
+    group_by: adsh 
+    having: sub1.form = '10-K'  
+    and audit1.Ticker = 'TGT' 
+    and num1.tag = 'AssetsCurrent' 
+} 
